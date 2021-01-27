@@ -1,11 +1,7 @@
-import { Template } from 'meteor/templating';
-import { ReactiveVar } from 'meteor/reactive-var';
-
-import './main.html';
+import {Template} from 'meteor/templating';
 import {Scores} from "../imports/scores";
 
-Template.body.onCreated(function() {
-});
+import './main.html';
 
 Template.body.helpers({
   scores() {
@@ -14,15 +10,14 @@ Template.body.helpers({
 });
 
 Template.body.events({
-  'submit .new-score-form'(event, instance) {
+  'submit form'(event) {
     event.preventDefault();
 
-    var form = event.target;
-    Scores.insert(
-      {
-        name: form.name.value,
-        score: parseInt(form.score.value)
-      }
-    );
+    let form = event.target;
+
+    Scores.insert({
+      name: form.name.value,
+      score: parseInt(form.score.value)
+    });
   },
 });

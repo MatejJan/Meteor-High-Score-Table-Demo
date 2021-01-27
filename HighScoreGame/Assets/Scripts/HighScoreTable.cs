@@ -8,30 +8,40 @@ using UnityEngine.UI;
 public class HighScoreTable : MonoBehaviour
 {
     public GameObject scoreEntryPrefab;
+    public const string serverUrl = "http://localhost:3000";
 
-    private string scoresUrl = "http://localhost:3000/publications/scores";
+    private string scoresUrl = serverUrl + "/publications/scores";
 
-    // Start is called before the first frame update
     void Start()
     {
-        StartCoroutine(LoadScores());
+        LoadScores();
     }
 
-    private IEnumerator LoadScores()
+    public void LoadScores()
     {
-        using (UnityWebRequest webData = UnityWebRequest.Get(scoresUrl))
+        // Load scores asynchronously.
+        StartCoroutine(LoadScoresCoroutine());
+    }
+
+    private IEnumerator LoadScoresCoroutine()
+    {
+        // Send a GET request to the scores URL.
+        using (UnityWebRequest webRequest = UnityWebRequest.Get(scoresUrl))
         {
-            yield return webData.SendWebRequest();
-            if (webData.isNetworkError || webData.isHttpError)
+            yield return webRequest.SendWebRequest();
+
+            // Make sure we got a valid response.
+            if (webRequest.isNetworkError || webRequest.isHttpError)
             {
                 Debug.LogError("Score loading error.");
-                Debug.LogError(webData.error);
+                Debug.LogError(webRequest.error);
             }
             else
             {
-                if (webData.isDone)
+                if (webRequest.isDone)
                 {
-                    JSONNode jsonData = JSON.Parse(System.Text.Encoding.UTF8.GetString(webData.downloadHandler.data));
+                    // Parse response data as JSON.
+                    JSONNode jsonData = JSON.Parse(System.Text.Encoding.UTF8.GetString(webRequest.downloadHandler.data));
 
                     if (jsonData == null)
                     {
@@ -39,19 +49,30 @@ public class HighScoreTable : MonoBehaviour
                     }
                     else
                     {
+                        // Delete any previous score entries.
                         Transform entriesTransform = transform.Find("Entries");
 
+                        foreach (Transform childTransform in entriesTransform)
+                        {
+                            GameObject.Destroy(childTransform.gameObject);
+                        }
+
+                        // Add current score entries.
                         var scores = jsonData["scores"];
+
                         for (int scoreIndex = 0; scoreIndex < scores.Count; scoreIndex++)
                         {
                             JSONNode scoreData = scores[scoreIndex];
 
+                            // Create score entry and position it in the list.
                             GameObject scoreEntry = GameObject.Instantiate(scoreEntryPrefab, entriesTransform);
-                            scoreEntry.transform.localPosition = new Vector3(0, -scoreIndex * 40, 0);
+                            scoreEntry.transform.localPosition = new Vector3(0, -scoreIndex * 25, 0);
 
+                            // Set the name of the player.
                             Text nameText = scoreEntry.transform.Find("Name").GetComponent<Text>();
                             nameText.text = scoreData["name"].ToString();
 
+                            // Set the score value.
                             Text scoreText = scoreEntry.transform.Find("Score").GetComponent<Text>();
                             scoreText.text = scoreData["score"].ToString();
                         }
@@ -59,11 +80,5 @@ public class HighScoreTable : MonoBehaviour
                 }
             }
         }
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
     }
 }
